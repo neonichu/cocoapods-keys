@@ -32,10 +32,8 @@ module CocoaPodsKeys
         interface = group.new_file(interface_file)
         implementation = group.new_file(implementation_file)
 
-        pods_target = project.targets.detect { |t| t.name == 'Pods' }
-        unless pods_target
-          pods_target = project.targets.detect { |t| t.name == 'Pods-' + keyring.name }
-        end
+        pods_target = determine_pods_target(project, keyring.name)
+        return unless pods_target
 
         pods_target.add_file_references [implementation]
 
@@ -48,6 +46,22 @@ module CocoaPodsKeys
 
         project.save
       end
+    end
+
+    private
+
+    def determine_pods_target(project, keyring_name)
+      possible_targets = ['Pods',
+                          'Pods-' + keyring_name,
+                          'Pods-' + File.basename(keyring_name, '.*')]
+
+      possible_targets.each { |target_name|
+        pods_target = project.targets.detect { |t| t.name == target_name }
+        return pods_target if pods_target
+      }
+
+      puts("[!] No matching target found, considered #{possible_targets.join(', ')}".red)
+      nil
     end
   end
 end
